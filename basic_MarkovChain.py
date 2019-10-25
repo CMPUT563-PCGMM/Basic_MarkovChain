@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import random
 
 
 
@@ -22,7 +23,7 @@ def readMaps(maps_path, tileTypes):
 
         map_arr = np.asarray(map, dtype=str)
         maps_lst.append(map_arr)
-        # break
+        break
 
     return maps_lst
 
@@ -40,6 +41,9 @@ class basicMarkovChain:
         self.cond_prob_distr = dict()
         self.each_tile_prob_distr = dict()
 
+        self.each_tile_prob_distr_key = []
+        self.each_tile_prob_distr_val = []
+
         # Absolute counts and CPDs for each dependency matrix
         for D_idx in range(len(self.dep_matrices)):
             self.abs_counts[D_idx] = dict()
@@ -55,49 +59,58 @@ class basicMarkovChain:
             self.count_each_tile(map, map_h, map_w)
 
             for D_idx in range(len(self.dep_matrices)):
-                # Length of max row idx that contains 1 - min row idx that contains 1
-                tile1_row_idx = np.where(np.any(self.dep_matrices[D_idx]==1, axis=1))[0]
-                tile1_col_idx = np.where(np.any(self.dep_matrices[D_idx]==1, axis=0))[0]
-                # Only one tile 2 in D
-                tile2_row_idx = min(np.where(np.any(self.dep_matrices[D_idx]==2, axis=1))[0])
-                tile2_col_idx = min(np.where(np.any(self.dep_matrices[D_idx]==2, axis=0))[0])
-
-                dep_mat_row_orig_idx = min(min(tile1_row_idx), tile2_row_idx)
-                dep_mat_col_orig_idx = min(min(tile1_col_idx), tile2_col_idx)
-
                 if self.learning_dr == 'top-down':
-                    if (max(tile1_row_idx) - min(tile1_row_idx) + 1) >= (tile2_row_idx - min(tile1_row_idx) + 1):
-                        dep_h = max(tile1_row_idx) - min(tile1_row_idx) + 1
-                    else:
-                        dep_h = tile2_row_idx - min(tile1_row_idx) + 1
-
-                    if (max(tile1_col_idx) - min(tile1_col_idx) + 1) >= (tile2_col_idx - min(tile1_col_idx) + 1):
-                        dep_w = max(tile1_col_idx) - min(tile1_col_idx) + 1
-                    else:
-                        dep_w = tile2_col_idx - min(tile1_col_idx) + 1
-
-                    minimum_D_mat = self.dep_matrices[D_idx][dep_mat_row_orig_idx:dep_mat_row_orig_idx+dep_h, dep_mat_col_orig_idx:dep_mat_col_orig_idx+dep_w]
+                    minimum_D_mat, dep_h, dep_w = self.getMin_dep_mat(self.dep_matrices[D_idx])
 
                     for row_i in range(0, map_h-dep_h+1):
                         for col_j in range(0, map_w-dep_w+1):
                             self.count_submap_config(map, minimum_D_mat, D_idx, row_i, col_j, dep_h, dep_w)
 
                 if self.learning_dr == 'bottom-up':
-                    if (max(tile1_row_idx) - min(tile1_row_idx) + 1) >= (max(tile1_row_idx) - tile2_row_idx + 1):
-                        dep_h = max(tile1_row_idx) - min(tile1_row_idx) + 1
-                    else:
-                        dep_h = max(tile1_row_idx) - tile2_row_idx + 1
-
-                    if (max(tile1_col_idx) - min(tile1_col_idx) + 1) >= (tile2_col_idx - min(tile1_col_idx) + 1):
-                        dep_w = max(tile1_col_idx) - min(tile1_col_idx) + 1
-                    else:
-                        dep_w = tile2_col_idx - min(tile1_col_idx) + 1
-
-                    minimum_D_mat = self.dep_matrices[D_idx][dep_mat_row_orig_idx:dep_mat_row_orig_idx+dep_h, dep_mat_col_orig_idx:dep_mat_col_orig_idx+dep_w]
+                    minimum_D_mat, dep_h, dep_w = self.getMin_dep_mat(self.dep_matrices[D_idx])
 
                     for row_i in range(map_h-dep_h, -1, -1):
                         for col_j in range(0, map_w-dep_w+1):
                             self.count_submap_config(map, minimum_D_mat, D_idx, row_i, col_j, dep_h, dep_w)
+
+    def getMin_dep_mat(self, dep_mat):
+        # Length of max row idx that contains 1 - min row idx that contains 1
+        tile1_row_idx = np.where(np.any(dep_mat==1, axis=1))[0]
+        tile1_col_idx = np.where(np.any(dep_mat==1, axis=0))[0]
+        # Only one tile 2 in D
+        tile2_row_idx = min(np.where(np.any(dep_mat==2, axis=1))[0])
+        tile2_col_idx = min(np.where(np.any(dep_mat==2, axis=0))[0])
+
+        dep_mat_row_orig_idx = min(min(tile1_row_idx), tile2_row_idx)
+        dep_mat_col_orig_idx = min(min(tile1_col_idx), tile2_col_idx)
+
+        if self.learning_dr == 'top-down':
+            if (max(tile1_row_idx) - min(tile1_row_idx) + 1) >= (tile2_row_idx - min(tile1_row_idx) + 1):
+                dep_h = max(tile1_row_idx) - min(tile1_row_idx) + 1
+            else:
+                dep_h = tile2_row_idx - min(tile1_row_idx) + 1
+
+            if (max(tile1_col_idx) - min(tile1_col_idx) + 1) >= (tile2_col_idx - min(tile1_col_idx) + 1):
+                dep_w = max(tile1_col_idx) - min(tile1_col_idx) + 1
+            else:
+                dep_w = tile2_col_idx - min(tile1_col_idx) + 1
+
+            minimum_D_mat = dep_mat[dep_mat_row_orig_idx:dep_mat_row_orig_idx+dep_h, dep_mat_col_orig_idx:dep_mat_col_orig_idx+dep_w]
+
+        if self.learning_dr == 'bottom-up':
+            if (max(tile1_row_idx) - min(tile1_row_idx) + 1) >= (max(tile1_row_idx) - tile2_row_idx + 1):
+                dep_h = max(tile1_row_idx) - min(tile1_row_idx) + 1
+            else:
+                dep_h = max(tile1_row_idx) - tile2_row_idx + 1
+
+            if (max(tile1_col_idx) - min(tile1_col_idx) + 1) >= (tile2_col_idx - min(tile1_col_idx) + 1):
+                dep_w = max(tile1_col_idx) - min(tile1_col_idx) + 1
+            else:
+                dep_w = tile2_col_idx - min(tile1_col_idx) + 1
+
+            minimum_D_mat = dep_mat[dep_mat_row_orig_idx:dep_mat_row_orig_idx+dep_h, dep_mat_col_orig_idx:dep_mat_col_orig_idx+dep_w]
+
+        return minimum_D_mat, dep_h, dep_w
 
     def count_each_tile(self, map, map_h, map_w):
         for r_i in range(map_h):
@@ -139,6 +152,12 @@ class basicMarkovChain:
         for tile in self.each_tile_abs_counts:
             self.each_tile_prob_distr[tile] = self.each_tile_abs_counts[tile] / total_tile_counts
 
+        self.each_tile_prob_distr_key = []
+        self.each_tile_prob_distr_val = []
+        for key in self.each_tile_prob_distr:
+            self.each_tile_prob_distr_key.append(key)
+            self.each_tile_prob_distr_val.append(self.each_tile_prob_distr[key])
+
         for D_key in self.abs_counts:
             # Given the number of occurences of tile2 and tile1s, get CPD P(tile2 | tile1s) = T(tile2, tile1s) / sum_all_tile2s(T(tile2, tile1s))
             tile1s_config = dict()
@@ -152,8 +171,182 @@ class basicMarkovChain:
             for tiles_config in self.abs_counts[D_key]:
                 self.cond_prob_distr[D_key][tiles_config] = self.abs_counts[D_key][tiles_config] / tile1s_config[tiles_config[1:]]
 
-    def sampling(self, g_map_w, g_map_h):
-        pass
+    def samplingMap(self, g_map_h, g_map_w, dep_mat, dep_mat_idx, fallback_dep_mat, fallback_dep_mat_idx, lookahead):
+        generated_map = np.empty(shape=(g_map_h, g_map_w), dtype=str)
+
+        min_dep_mat, dep_h, dep_w = self.getMin_dep_mat(dep_mat)
+        min_fb_dep_mat, fb_dep_h, fb_dep_w = self.getMin_dep_mat(fallback_dep_mat)
+
+        if self.learning_dr == 'top-down':
+            for row_i in range(g_map_h):
+                for col_j in range(g_map_w):
+                    generatedTile, do_lookahead = self.generateTile(generated_map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                    if do_lookahead:
+                        if generatedTile is None:
+                            # Fallback
+                            generatedTile = self.perform_fallback(lookahead, generated_map, row_i, col_j, min_fb_dep_mat, fb_dep_h, fb_dep_w, fallback_dep_mat_idx)
+                        else:
+                            # Lookahead
+                            new_Map = np.copy(generated_map)
+                            new_Map[row_i][col_j] = generatedTile
+
+                            la_success = self.perform_lookahead(lookahead, new_Map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                            if not la_success:
+                                # Fallback
+                                generatedTile = self.perform_fallback(lookahead, generated_map, row_i, col_j, min_fb_dep_mat, fb_dep_h, fb_dep_w, fallback_dep_mat_idx)
+
+                    generated_map[row_i][col_j] = generatedTile
+
+        if self.learning_dr == 'bottom-up':
+            for row_i in range(g_map_h-1, -1, -1):
+                for col_j in range(g_map_w):
+                    generatedTile, do_lookahead = self.generateTile(generated_map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                    if do_lookahead:
+                        if generatedTile is None:
+                            # Fallback
+                            generatedTile = self.perform_fallback(lookahead, generated_map, row_i, col_j, min_fb_dep_mat, fb_dep_h, fb_dep_w, fallback_dep_mat_idx)
+                        else:
+                            # Lookahead
+                            new_Map = np.copy(generated_map)
+                            new_Map[row_i][col_j] = generatedTile
+
+                            la_success = self.perform_lookahead(lookahead, new_Map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                            if not la_success:
+                                # Fallback
+                                generatedTile = self.perform_fallback(lookahead, generated_map, row_i, col_j, min_fb_dep_mat, fb_dep_h, fb_dep_w, fallback_dep_mat_idx)
+
+                    generated_map[row_i][col_j] = generatedTile
+        return generated_map
+
+    def generateTile(self, currentMap, row_i, col_j, dep_mat, dep_h, dep_w, dep_mat_idx):
+        # Find the location of tile 2 in dep_mat
+        tile2_row_idx = min(np.where(np.any(dep_mat==2, axis=1))[0])
+        tile2_col_idx = min(np.where(np.any(dep_mat==2, axis=0))[0])
+
+        # Find the orig of dep_mat when generate this tile
+        orig_row_i = row_i - tile2_row_idx
+        orig_col_j = col_j - tile2_col_idx
+
+        if orig_row_i < 0 or orig_row_i >= currentMap.shape[0] or orig_col_j < 0 or orig_col_j >= currentMap.shape[1] or orig_row_i + dep_h > currentMap.shape[0] or orig_col_j + dep_w > currentMap.shape[1]:
+            # dep mat outside the currentMap, generate a tile randomly
+            generatedTile = self.random_generateTile()
+            return generatedTile, False
+        else:
+            generatedTile, do_lookahead = self.dep_generateTile(currentMap, dep_mat, orig_row_i, orig_col_j, dep_h, dep_w, dep_mat_idx)
+
+            return generatedTile, do_lookahead
+
+    def random_generateTile(self):
+        randomTile = np.random.choice(self.each_tile_prob_distr_key, p=self.each_tile_prob_distr_val)
+        return randomTile
+
+    def dep_generateTile(self, currentMap, dep_mat, dep_orig_ri, dep_orig_cj, dep_h, dep_w, dep_mat_idx):
+        sub_map = currentMap[dep_orig_ri:dep_orig_ri+dep_h, dep_orig_cj:dep_orig_cj+dep_w]
+
+        # Get the values for tile 1s
+        tile_1s_val = []
+
+        for sub_r_i in range(dep_h):
+            for sub_c_j in range(dep_w):
+                if dep_mat[sub_r_i][sub_c_j] == 1:
+                    tile_1s_val.append(sub_map[sub_r_i][sub_c_j])
+
+        if '' in tile_1s_val:
+            # generate tile randomly, do not lookahead
+            return self.random_generateTile(), False
+        else:
+            dep_idx_cond_prob_key = []
+            dep_idx_cond_prob_vals = []
+
+            tile1s_config = ''.join(tile_1s_val)
+
+            for key in self.cond_prob_distr[dep_mat_idx]:
+                if key[1:] == tile1s_config:
+                    dep_idx_cond_prob_key.append(key[0])
+                    dep_idx_cond_prob_vals.append(self.cond_prob_distr[dep_mat_idx][key])
+
+            if len(dep_idx_cond_prob_key) == 0:
+                # Encounter the unseen state
+                return None, True
+            else:
+                # Get the tile with the largest probability
+                max_prob_val = max(dep_idx_cond_prob_vals)
+
+                selectedTiles_idx = []
+
+                for prob_idx in range(len(dep_idx_cond_prob_vals)):
+                    if dep_idx_cond_prob_vals[prob_idx] == max_prob_val:
+                        selectedTiles_idx.append(prob_idx)
+
+                return dep_idx_cond_prob_key[random.choice(selectedTiles_idx)], True
+
+    def perform_lookahead(self, lookahead, new_Map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx):
+        la_num = 0
+        res = True
+
+        if self.learning_dr == 'top-down':
+            for i in range(row_i, new_Map.shape[0]):
+                for j in range(new_Map.shape[1]):
+                    if la_num == lookahead:
+                        return res
+
+                    if i == row_i and j <= col_j:
+                        # Do not generate tile
+                        pass
+                    else:
+                        generatedTile, do_lookahead = self.generateTile(new_Map, i, j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                        if not do_lookahead or generatedTile is None:
+                            # Lookahead failed
+                            res = False
+                            return res
+
+                        new_Map[i][j] = generatedTile
+                        la_num += 1
+            return res
+
+        if self.learning_dr == 'bottom-up':
+            for i in range(row_i, -1, -1):
+                for j in range(new_Map.shape[1]):
+                    if la_num == lookahead:
+                        return res
+
+                    if i == row_i and j <= col_j:
+                        # Do not generate tile
+                        pass
+                    else:
+                        generatedTile, do_lookahead = self.generateTile(new_Map, i, j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                        if not do_lookahead or generatedTile is None:
+                            # Lookahead failed
+                            res = False
+                            return res
+
+                        new_Map[i][j] = generatedTile
+                        la_num += 1
+            return res
+
+    def perform_fallback(self, lookahead, map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx):
+        generatedTile, do_lookahead = self.generateTile(map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+        if do_lookahead:
+            if generatedTile is None:
+                generatedTile = self.random_generateTile()
+            else:
+                # Lookahead
+                new_Map = np.copy(map)
+                new_Map[row_i][col_j] = generatedTile
+
+                la_success = self.perform_lookahead(lookahead, new_Map, row_i, col_j, min_dep_mat, dep_h, dep_w, dep_mat_idx)
+
+                if not la_success:
+                    # Lookahead failed
+                    generatedTile = self.random_generateTile()
+        return generatedTile
 
 
 
@@ -203,3 +396,5 @@ basic_MC.prob_Estimation()
 # print(basic_MC.cond_prob_distr)
 # print(basic_MC.each_tile_prob_distr)
 # Generation
+generatedMap = basic_MC.samplingMap(11, 13, D_5, 4, D_4, 3, 3)
+print(generatedMap)
