@@ -44,7 +44,7 @@ basic_MC.learn(training_data, training_param_dict)
 print("Learning time = {}".format(time.time() - start_time))
 
 # Initial room map with the given border
-initial_room_map = create_initial_room_map()
+initial_room_map = create_initial_room_map(height=16, width=11)
 
 # Initial tile list, remove 'W' and 'D'
 tiles = list(tileTypes.keys())
@@ -57,9 +57,12 @@ sampling_param_dict = {'learning_direction': 'top-down-left',
                        'sampling_methods': ['lookahead', 'fallback'],
                        'lookahead': 5,
                        'fallback': True}
-start_time = time.time()                       
-print("Sampling...")
-generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
-print("Sampling time = {}".format(time.time() - start_time))
 
-print(generated_map)
+print("Sampling...") 
+# DETINIATION_GENERATE_ROOM = "./generate_map_BMC"  
+DETINIATION_GENERATE_ROOM = "../../PCGMM_Evaluation_Method/generate_map_BMC"                          
+for i in range(400):
+  generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
+  np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")
+
+# print(generated_map)
