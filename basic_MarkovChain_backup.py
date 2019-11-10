@@ -1,6 +1,8 @@
 import os
 import random
 import numpy as np
+import img_gen as ig
+import mapProcessor as mp
 
 def readMaps(tileTypes):
     maps_path = "./maps"
@@ -48,7 +50,7 @@ def flip_map(map, flip_hor, flip_ver):
     return map
 
 def create_initial_room_map():
-    initial_room = np.empty(shape=(10, 8), dtype=str)
+    initial_room = np.empty(shape=(16, 11), dtype=str)
 
     for row_i in range(initial_room.shape[0]):
         if row_i == 0 or row_i == 1 or row_i == initial_room.shape[0] - 2 or row_i == initial_room.shape[0] - 1:
@@ -403,7 +405,8 @@ tileTypes = {
     "-": "VOID"
 }
 
-maps_data = readMaps(tileTypes)
+# maps_data = readMaps(tileTypes)
+maps_data = mp.readMaps("data/Processed")
 
 training_data, validation_data, testing_data = data_split(maps_data)
 
@@ -441,3 +444,6 @@ sampling_param_dict = {'learning_direction': 'top-down-left',
 generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
 
 print(generated_map)
+
+imgs_dic = ig.getAllTileImg("data/pics")
+ig.showRoom(generated_map, imgs_dic)
