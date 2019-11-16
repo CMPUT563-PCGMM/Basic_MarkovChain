@@ -49,21 +49,17 @@ def flip_map(map, flip_hor, flip_ver):
 
     return map
 
-def create_initial_room_map():
-    initial_room = np.empty(shape=(16, 11), dtype=str)
+def create_initial_room_map(height, width):
+    initial_room = np.empty(shape=(height, width), dtype=str)
 
     for row_i in range(initial_room.shape[0]):
-        if row_i == 0 or row_i == 1 or row_i == initial_room.shape[0] - 2 or row_i == initial_room.shape[0] - 1:
-            # Fill with the wall tile: 'W'
+        if row_i == 0 or row_i == initial_room.shape[0] - 1:
             initial_room[row_i, :] = 'W'
         else:
-            initial_room[row_i, 0:2] = 'W'
-            initial_room[row_i, -2:] = 'W'
+            initial_room[row_i, 0] = 'W'
+            initial_room[row_i, -1] = 'W'
 
-    # Assign the door tiles
-    initial_room[4:6, 1] = 'D'
-    initial_room[4:6, -2] = 'D'
-    initial_room[-2, 3:5] = 'D'
+    initial_room[1, 1] = 'W'
 
     return initial_room
 
@@ -297,23 +293,6 @@ class basicMarkovChain:
                 return sample_tile_res, current_map
 
 
-        # Check for the learning direction
-        if param_dict['learning_direction'] == 'top-down-left':
-            # No need to flip the map
-            pass
-
-        if param_dict['learning_direction'] == 'top-down-right':
-            # Flip the map hortizontally
-            initial_room_map = flip_map(initial_room_map, True, False)
-
-        if param_dict['learning_direction'] == 'bottom-up-left':
-            # Flip the map vertically
-            initial_room_map = flip_map(initial_room_map, False, True)
-
-        if param_dict['learning_direction'] == 'bottom-up-right':
-            # Flip the map horizontally and vertically
-            initial_room_map = flip_map(initial_room_map, True, True)
-
         initial_room_map_h = initial_room_map.shape[0]
         initial_room_map_w = initial_room_map.shape[1]
 
@@ -333,8 +312,27 @@ class basicMarkovChain:
             if sampling_method == 'fallback':
                 fallback_param = param_dict['fallback']
 
-        for row_i in range(2, initial_room_map_h-2):
-            for col_j in range(2, initial_room_map_w-2):
+        all_tiles_lst = param_dict['tiles']
+
+        for row_i in range(1, initial_room_map_h-1):
+            for col_j in range(1, initial_room_map_w-1):
+                if row_i == 1 and col_j == 1:
+                    # Tile W is already assigned
+                    continue
+
+                this_tiles_lst = all_tiles_lst.copy()
+
+                if row_i == 1 or row_i == initial_room_map_h-1 or col_j == 1 or col_j == initial_room_map_w-1:
+                    pass
+                else:
+                    # Remove wall and door tiles from tiles list
+                    this_tiles_lst.remove('W')
+                    this_tiles_lst.remove('D')
+                    this_tiles_lst.remove('U')
+                    this_tiles_lst.remove('N')
+                    this_tiles_lst.remove('E')
+                    this_tiles_lst.remove('A')
+
                 if fallback_param:
                     dep_mat_lst = [self.dep_mat, self.fallback_dep_mat]
                     cond_prob_dict_lst = [self.dep_mat_cond_prob, self.fallback_dep_mat_cond_prob]
@@ -345,7 +343,7 @@ class basicMarkovChain:
                 prev_generated_map = generated_map
 
                 for dep_mat_idx in range(len(dep_mat_lst)):
-                    sample_tile_res, generated_map = sample_tile(prev_generated_map, row_i, col_j, lookahead_num_param, dep_mat_lst[dep_mat_idx], cond_prob_dict_lst[dep_mat_idx], param_dict['tiles'])
+                    sample_tile_res, generated_map = sample_tile(prev_generated_map, row_i, col_j, lookahead_num_param, dep_mat_lst[dep_mat_idx], cond_prob_dict_lst[dep_mat_idx], this_tiles_lst)
 
                     if sample_tile_res:
                         # None need to generate the tile using the fallback dependency matrix
@@ -397,16 +395,19 @@ tileTypes = {
     "B": "BLOCK",
     "M": "MONSTER",
     "P": "ELEMENT (LAVA, WATER)",
-    "O": "ELEMENT + FLOOR (LAVA/BLOCK, WATER/BLOCK)",
-    "I": "ELEMENT + BLOCK",
     "D": "DOOR",
     "S": "STAIR",
     "W": "WALL",
-    "-": "VOID"
+    "-": "VOID",
+    "U": "single arrow, out - Go out of the room",
+    "N": "single arrow, in - Go in to the room",
+    "E": "double arrow - Go in and out of the room",
+    "C": "Movable block",
+    "A": "Breakable wall"
 }
 
 # maps_data = readMaps(tileTypes)
-maps_data = mp.readMaps("data/Processed")
+maps_data = mp.readMaps("data/Final_Processed_changed_tiles_reduced_OI")
 
 training_data, validation_data, testing_data = data_split(maps_data)
 
@@ -427,12 +428,10 @@ basic_MC = basicMarkovChain()
 basic_MC.learn(training_data, training_param_dict)
 
 # Initial room map with the given border
-initial_room_map = create_initial_room_map()
+initial_room_map = create_initial_room_map(16, 11)
 
 # Initial tile list, remove 'W' and 'D'
 tiles = list(tileTypes.keys())
-tiles.remove('W')
-tiles.remove('D')
 
 # Learning direction: top-down-left; top-down-right; bottom-up-left; bottom-up-right
 sampling_param_dict = {'learning_direction': 'top-down-left',

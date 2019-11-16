@@ -13,12 +13,15 @@ tileTypes = {
     "B": "BLOCK",
     "M": "MONSTER",
     "P": "ELEMENT (LAVA, WATER)",
-    "O": "ELEMENT + FLOOR (LAVA/BLOCK, WATER/BLOCK)",
-    "I": "ELEMENT + BLOCK",
     "D": "DOOR",
     "S": "STAIR",
     "W": "WALL",
-    "-": "VOID"
+    "-": "VOID",
+    "U": "single arrow, out - Go out of the room",
+    "N": "single arrow, in - Go in to the room",
+    "E": "double arrow - Go in and out of the room",
+    "C": "Movable block",
+    "A": "Breakable wall"
 }
 
 ROOMHEIGHT = 16
@@ -96,4 +99,4 @@ def highLevelMapConv(ml,d,z,Th):
         for x in range(ml.shape[1]//ROOMWIDTH):
             pass
 
-# def 
+# def
