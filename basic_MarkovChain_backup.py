@@ -4,6 +4,8 @@ import numpy as np
 import img_gen as ig
 import mapProcessor as mp
 
+door_tiles = ['D', 'U', 'N', 'E', 'A']
+
 def readMaps(tileTypes):
     maps_path = "./maps"
 
@@ -53,14 +55,56 @@ def create_initial_room_map(height, width):
     initial_room = np.empty(shape=(height, width), dtype=str)
 
     for row_i in range(initial_room.shape[0]):
-        if row_i == 0 or row_i == initial_room.shape[0] - 1:
+        if row_i == 0 or row_i == 1 or row_i == initial_room.shape[0] - 1 or row_i == initial_room.shape[0] - 2:
             initial_room[row_i, :] = 'W'
         else:
-            initial_room[row_i, 0] = 'W'
-            initial_room[row_i, -1] = 'W'
+            initial_room[row_i, 0:2] = 'W'
+            initial_room[row_i, -2:] = 'W'
 
-    initial_room[1, 1] = 'W'
+    door_arr = np.zeros((4, ), dtype = np.int8)
 
+    for door_i in range(door_arr.shape[0]):
+        door_arr[door_i] = random.randint(0,1)
+
+    if not np.any(door_arr == 1):
+        # Assign a door to any side
+        side_idx = random.randint(0,3)
+
+        door_arr[side_idx] = 1
+
+    if door_arr[0] == 1:
+        # Top side has the one of the door tiles
+        door_tile_type_idx = random.randint(0,len(door_tiles)-1)
+
+        start_idx = width // 2
+
+        initial_room[1, start_idx-1:start_idx+2] = door_tiles[door_tile_type_idx]
+
+    if door_arr[1] == 1:
+        # Right side has the one of the door tiles
+        door_tile_type_idx = random.randint(0,len(door_tiles)-1)
+
+        start_idx = height // 2
+
+        initial_room[start_idx-1:start_idx+1, width-2] = door_tiles[door_tile_type_idx]
+
+    if door_arr[2] == 1:
+        # Bottom side has the one of the door tiles
+        door_tile_type_idx = random.randint(0,len(door_tiles)-1)
+
+        start_idx = width // 2
+
+        initial_room[height-2, start_idx-1:start_idx+2] = door_tiles[door_tile_type_idx]
+
+    if door_arr[3] == 1:
+        # Left side has the one of the door tiles
+        door_tile_type_idx = random.randint(0,len(door_tiles)-1)
+
+        start_idx = height // 2
+
+        initial_room[start_idx-1:start_idx+1, 1] = door_tiles[door_tile_type_idx]
+
+    print(initial_room)
     return initial_room
 
 class basicMarkovChain:
@@ -312,26 +356,17 @@ class basicMarkovChain:
             if sampling_method == 'fallback':
                 fallback_param = param_dict['fallback']
 
-        all_tiles_lst = param_dict['tiles']
+        all_tiles_lst = param_dict['tiles'].copy()
 
-        for row_i in range(1, initial_room_map_h-1):
-            for col_j in range(1, initial_room_map_w-1):
-                if row_i == 1 and col_j == 1:
-                    # Tile W is already assigned
-                    continue
+        # Remove wall and door tiles from tiles list
+        all_tiles_lst.remove('W')
+        for door_tile in door_tiles:
+            all_tiles_lst.remove(door_tile)
+
+        for row_i in range(2, initial_room_map_h-2):
+            for col_j in range(2, initial_room_map_w-2):
 
                 this_tiles_lst = all_tiles_lst.copy()
-
-                if row_i == 1 or row_i == initial_room_map_h-1 or col_j == 1 or col_j == initial_room_map_w-1:
-                    pass
-                else:
-                    # Remove wall and door tiles from tiles list
-                    this_tiles_lst.remove('W')
-                    this_tiles_lst.remove('D')
-                    this_tiles_lst.remove('U')
-                    this_tiles_lst.remove('N')
-                    this_tiles_lst.remove('E')
-                    this_tiles_lst.remove('A')
 
                 if fallback_param:
                     dep_mat_lst = [self.dep_mat, self.fallback_dep_mat]
@@ -430,7 +465,7 @@ basic_MC.learn(training_data, training_param_dict)
 # Initial room map with the given border
 initial_room_map = create_initial_room_map(16, 11)
 
-# Initial tile list, remove 'W' and 'D'
+# Initial tile list
 tiles = list(tileTypes.keys())
 
 # Learning direction: top-down-left; top-down-right; bottom-up-left; bottom-up-right
