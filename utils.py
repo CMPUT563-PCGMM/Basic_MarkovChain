@@ -9,6 +9,10 @@ def readMaps(tileTypes, maps_path):
     maps_lst = []
 
     for fileName in os.listdir(maps_path):
+        # print(fileName)
+        if fileName.split(".")[-1] != "txt":
+            continue
+
         map = []
         # Read this map
         map_f = open(maps_path+"/"+fileName, 'r')

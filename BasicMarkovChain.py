@@ -4,6 +4,8 @@ import numpy as np
 
 from BaseModel import BaseModel
 from utils import flip_map
+from PCGMM_Evaluation_Method.playability import evaluate_playability
+from PCGMM_Evaluation_Method.similarity import evaluate_similarity
 
 class BasicMarkovChain(BaseModel):
     def __init__(self):
@@ -28,7 +30,11 @@ class BasicMarkovChain(BaseModel):
 
             for row_i in range(map_h):
                 for col_j in range(map_w):
-                    if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D':
+                    # "Xinlei Edition"
+                    # if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D':
+                    if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D' and \
+                        map_data[row_i, col_j] != 'A' and map_data[row_i, col_j] != 'U' and \
+                        map_data[row_i, col_j] != 'N' and map_data[row_i, col_j] != 'E':
                         if map_data[row_i, col_j] not in self.each_tile_count:
                             self.each_tile_count[map_data[row_i, col_j]] = 1
                         else:
@@ -325,7 +331,24 @@ class BasicMarkovChain(BaseModel):
         return generated_map
 
     def evaluate(self, evaluate_data, param_dict):
-        # return string
-        pass
+        dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
+        if not os.path.isdir(dir_path+'PCGMM_Evaluation_Method'):
+            raise Exception("Please clone PCGMM_Evaluation_Method under current dir")
+        
+        print("start evaluating ..")
+        # check palyability
+        unplayble_room, playability = evaluate_playability(evaluate_data)
+
+        # check similarity
+        similarity_function = param_dict["similarity_function"]
+        enable_cluster = param_dict["enable_cluster"]
+        similarity = evaluate_similarity(evaluate_data, similarity_function, enable_cluster)
+
+        report = "playability = {}\nsimilarity = {}".format(playability, similarity)
+
+        return report
+        
+        
+
 
 

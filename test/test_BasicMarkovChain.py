@@ -12,16 +12,19 @@ tileTypes = {
     "B": "BLOCK",
     "M": "MONSTER",
     "P": "ELEMENT (LAVA, WATER)",
-    "O": "ELEMENT + FLOOR (LAVA/BLOCK, WATER/BLOCK)",
-    "I": "ELEMENT + BLOCK",
     "D": "DOOR",
     "S": "STAIR",
     "W": "WALL",
-    "-": "VOID"
+    "-": "VOID",
+    "A": "BREAKABLE WALL",
+    "C": "MOVABLE BLOCK",
+    "N": "TODO",
+    "E": "TODO",
+    "U": "TODO"
 }
 
-maps_data = readMaps(tileTypes, maps_path="./maps")
-
+maps_data = readMaps(tileTypes, maps_path="../PCGMM_Evaluation_Method/map_data/map_reduced_OI")
+# maps_data = readMaps(tileTypes, maps_path="./maps")
 training_data, validation_data, testing_data = data_split(maps_data)
 
 # top-down-left dependency matrices
@@ -45,11 +48,17 @@ print("Learning time = {}".format(time.time() - start_time))
 
 # Initial room map with the given border
 initial_room_map = create_initial_room_map(height=16, width=11)
+print(initial_room_map)
 
 # Initial tile list, remove 'W' and 'D'
 tiles = list(tileTypes.keys())
 tiles.remove('W')
 tiles.remove('D')
+
+tiles.remove('A')
+tiles.remove('N')
+tiles.remove('E')
+tiles.remove('U')
 
 # Learning direction: top-down-left; top-down-right; bottom-up-left; bottom-up-right
 sampling_param_dict = {'learning_direction': 'top-down-left',
@@ -60,9 +69,15 @@ sampling_param_dict = {'learning_direction': 'top-down-left',
 
 print("Sampling...") 
 # DETINIATION_GENERATE_ROOM = "./generate_map_BMC"  
-DETINIATION_GENERATE_ROOM = "../../PCGMM_Evaluation_Method/generate_map_BMC"                          
-for i in range(400):
+# DETINIATION_GENERATE_ROOM = "../PCGMM_Evaluation_Method/generate_map/generate_map_BMC_2"
+sampling_num = 400
+rooms = np.empty((sampling_num, 16, 11), dtype = str)           
+for i in range(sampling_num):
   generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
-  np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")
+  rooms[i, :, :] = generated_map
+print(basic_MC.evaluate(rooms, 
+                    {"similarity_function": "histogram_base",
+                    "enable_cluster": True}))
+  # np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")
 
 # print(generated_map)
