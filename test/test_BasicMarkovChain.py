@@ -4,7 +4,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import time
 import numpy as np
 
-from utils import readMaps, data_split, create_initial_room_map
+import img_gen as ig
+import mapProcessor as mp
+from utils import data_split, create_initial_room_map
 from BasicMarkovChain import BasicMarkovChain
 
 tileTypes = {
@@ -16,15 +18,15 @@ tileTypes = {
     "S": "STAIR",
     "W": "WALL",
     "-": "VOID",
-    "A": "BREAKABLE WALL",
-    "C": "MOVABLE BLOCK",
-    "N": "TODO",
-    "E": "TODO",
-    "U": "TODO"
+    "U": "single arrow, out - Go out of the room",
+    "N": "single arrow, in - Go in to the room",
+    "E": "double arrow - Go in and out of the room",
+    "C": "Movable block",
+    "A": "Breakable wall"
 }
 
-maps_data = readMaps(tileTypes, maps_path="../PCGMM_Evaluation_Method/map_data/map_reduced_OI")
-# maps_data = readMaps(tileTypes, maps_path="./maps")
+maps_data = mp.readMaps(tileTypes, maps_path="../PCGMM_Evaluation_Method/map_data/map_reduced_OI")
+# maps_data = mp.readMaps("../data/Final_Processed_changed_tiles_reduced_OI")
 training_data, validation_data, testing_data = data_split(maps_data)
 
 # top-down-left dependency matrices
@@ -52,13 +54,11 @@ print(initial_room_map)
 
 # Initial tile list, remove 'W' and 'D'
 tiles = list(tileTypes.keys())
-tiles.remove('W')
-tiles.remove('D')
 
-tiles.remove('A')
-tiles.remove('N')
-tiles.remove('E')
-tiles.remove('U')
+removed_tiles = ['W', 'D', 'U', 'N', 'E', 'A']
+
+for removed_tile in removed_tiles:
+    tiles.remove(removed_tile)
 
 # Learning direction: top-down-left; top-down-right; bottom-up-left; bottom-up-right
 sampling_param_dict = {'learning_direction': 'top-down-left',
@@ -67,15 +67,15 @@ sampling_param_dict = {'learning_direction': 'top-down-left',
                        'lookahead': 5,
                        'fallback': True}
 
-print("Sampling...") 
-# DETINIATION_GENERATE_ROOM = "./generate_map_BMC"  
+print("Sampling...")
+# DETINIATION_GENERATE_ROOM = "./generate_map_BMC"
 # DETINIATION_GENERATE_ROOM = "../PCGMM_Evaluation_Method/generate_map/generate_map_BMC_2"
 sampling_num = 400
-rooms = np.empty((sampling_num, 16, 11), dtype = str)           
+rooms = np.empty((sampling_num, 16, 11), dtype = str)
 for i in range(sampling_num):
   generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
   rooms[i, :, :] = generated_map
-print(basic_MC.evaluate(rooms, 
+print(basic_MC.evaluate(rooms,
                     {"similarity_function": "histogram_base",
                     "enable_cluster": True}))
   # np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")

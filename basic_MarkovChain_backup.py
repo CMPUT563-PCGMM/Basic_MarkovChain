@@ -4,7 +4,6 @@ import numpy as np
 import img_gen as ig
 import mapProcessor as mp
 
-door_tiles = ['D', 'U', 'N', 'E', 'A']
 
 def readMaps(tileTypes):
     maps_path = "./maps"
@@ -52,6 +51,8 @@ def flip_map(map, flip_hor, flip_ver):
     return map
 
 def create_initial_room_map(height, width):
+    door_tiles = ['D', 'U', 'N', 'E', 'A']
+
     initial_room = np.empty(shape=(height, width), dtype=str)
 
     for row_i in range(initial_room.shape[0]):
@@ -71,6 +72,11 @@ def create_initial_room_map(height, width):
         side_idx = random.randint(0,3)
 
         door_arr[side_idx] = 1
+
+    if sum(door_arr == 1) == 1:
+        # Remove U, N from door tiles
+        door_tiles.remove('U')
+        door_tiles.remove('N')
 
     if door_arr[0] == 1:
         # Top side has the one of the door tiles
@@ -104,7 +110,6 @@ def create_initial_room_map(height, width):
 
         initial_room[start_idx-1:start_idx+1, 1] = door_tiles[door_tile_type_idx]
 
-    print(initial_room)
     return initial_room
 
 class basicMarkovChain:
@@ -337,6 +342,23 @@ class basicMarkovChain:
                 return sample_tile_res, current_map
 
 
+        # Check for the learning direction
+        if param_dict['learning_direction'] == 'top-down-left':
+            # No need to flip the map
+            pass
+
+        if param_dict['learning_direction'] == 'top-down-right':
+            # Flip the map hortizontally
+            initial_room_map = flip_map(initial_room_map, True, False)
+
+        if param_dict['learning_direction'] == 'bottom-up-left':
+            # Flip the map vertically
+            initial_room_map = flip_map(initial_room_map, False, True)
+
+        if param_dict['learning_direction'] == 'bottom-up-right':
+            # Flip the map horizontally and vertically
+            initial_room_map = flip_map(initial_room_map, True, True)
+
         initial_room_map_h = initial_room_map.shape[0]
         initial_room_map_w = initial_room_map.shape[1]
 
@@ -357,11 +379,6 @@ class basicMarkovChain:
                 fallback_param = param_dict['fallback']
 
         all_tiles_lst = param_dict['tiles'].copy()
-
-        # Remove wall and door tiles from tiles list
-        all_tiles_lst.remove('W')
-        for door_tile in door_tiles:
-            all_tiles_lst.remove(door_tile)
 
         for row_i in range(2, initial_room_map_h-2):
             for col_j in range(2, initial_room_map_w-2):
@@ -467,6 +484,11 @@ initial_room_map = create_initial_room_map(16, 11)
 
 # Initial tile list
 tiles = list(tileTypes.keys())
+
+removed_tiles = ['W', 'D', 'U', 'N', 'E', 'A']
+
+for removed_tile in removed_tiles:
+    tiles.remove(removed_tile)
 
 # Learning direction: top-down-left; top-down-right; bottom-up-left; bottom-up-right
 sampling_param_dict = {'learning_direction': 'top-down-left',
