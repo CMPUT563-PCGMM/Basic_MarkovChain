@@ -4,9 +4,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 
 from utils import create_initial_room_map
-from RandomModel import RandomModel
+from model.RandomModel import RandomModel
 
-# DETINIATION_GENERATE_ROOM = "../../PCGMM_Evaluation_Method/generate_map/generate_map_RM_2"
 
 # Initial room map with the given border
 initial_room_map = create_initial_room_map(height=16, width=11)

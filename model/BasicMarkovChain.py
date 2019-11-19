@@ -2,10 +2,10 @@ import os
 import random
 import numpy as np
 
-from BaseModel import BaseModel
+from model.BaseModel import BaseModel
 from utils import flip_map
-from PCGMM_Evaluation_Method.playability import evaluate_playability
-from PCGMM_Evaluation_Method.similarity import evaluate_similarity
+# from PCGMM_Evaluation_Method.playability import evaluate_playability
+# from PCGMM_Evaluation_Method.similarity import evaluate_similarity
 
 class BasicMarkovChain(BaseModel):
     def __init__(self):
@@ -329,26 +329,5 @@ class BasicMarkovChain(BaseModel):
             generated_map = flip_map(generated_map, True, True)
 
         return generated_map
-
-    def evaluate(self, evaluate_data, param_dict):
-        dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
-        if not os.path.isdir(dir_path+'PCGMM_Evaluation_Method'):
-            raise Exception("Please clone PCGMM_Evaluation_Method under current dir")
         
-        print("start evaluating ..")
-        # check palyability
-        unplayble_room, playability = evaluate_playability(evaluate_data)
-
-        # check similarity
-        similarity_function = param_dict["similarity_function"]
-        enable_cluster = param_dict["enable_cluster"]
-        similarity = evaluate_similarity(evaluate_data, similarity_function, enable_cluster)
-
-        report = "playability = {}\nsimilarity = {}".format(playability, similarity)
-
-        return report
-        
-        
-
-
-
+    

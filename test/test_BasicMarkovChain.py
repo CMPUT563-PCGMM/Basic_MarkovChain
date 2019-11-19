@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from utils import readMaps, data_split, create_initial_room_map
-from BasicMarkovChain import BasicMarkovChain
+from model.BasicMarkovChain import BasicMarkovChain
 
 tileTypes = {
     "F": "FLOOR",
@@ -23,7 +23,10 @@ tileTypes = {
     "U": "TODO"
 }
 
-maps_data = readMaps(tileTypes, maps_path="../PCGMM_Evaluation_Method/map_data/map_reduced_OI")
+# read rooms for trainning data (you may have to change)
+TRAINING_DATA_PATH = "../PCGMM_Evaluation_Method/map_data/map_reduced_OI"
+
+maps_data = readMaps(tileTypes, maps_path=TRAINING_DATA_PATH)
 # maps_data = readMaps(tileTypes, maps_path="./maps")
 training_data, validation_data, testing_data = data_split(maps_data)
 
