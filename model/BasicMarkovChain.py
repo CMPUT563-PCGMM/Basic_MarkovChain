@@ -4,8 +4,6 @@ import numpy as np
 
 from model.BaseModel import BaseModel
 from utils import flip_map
-# from PCGMM_Evaluation_Method.playability import evaluate_playability
-# from PCGMM_Evaluation_Method.similarity import evaluate_similarity
 
 class BasicMarkovChain(BaseModel):
     def __init__(self):
@@ -30,11 +28,7 @@ class BasicMarkovChain(BaseModel):
 
             for row_i in range(map_h):
                 for col_j in range(map_w):
-                    # "Xinlei Edition"
-                    # if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D':
-                    if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D' and \
-                        map_data[row_i, col_j] != 'A' and map_data[row_i, col_j] != 'U' and \
-                        map_data[row_i, col_j] != 'N' and map_data[row_i, col_j] != 'E':
+                    if map_data[row_i, col_j] != 'W' and map_data[row_i, col_j] != 'D':
                         if map_data[row_i, col_j] not in self.each_tile_count:
                             self.each_tile_count[map_data[row_i, col_j]] = 1
                         else:
@@ -277,8 +271,13 @@ class BasicMarkovChain(BaseModel):
             if sampling_method == 'fallback':
                 fallback_param = param_dict['fallback']
 
+        all_tiles_lst = param_dict['tiles'].copy()
+
         for row_i in range(2, initial_room_map_h-2):
             for col_j in range(2, initial_room_map_w-2):
+
+                this_tiles_lst = all_tiles_lst.copy()
+
                 if fallback_param:
                     dep_mat_lst = [self.dep_mat, self.fallback_dep_mat]
                     cond_prob_dict_lst = [self.dep_mat_cond_prob, self.fallback_dep_mat_cond_prob]
@@ -289,7 +288,7 @@ class BasicMarkovChain(BaseModel):
                 prev_generated_map = generated_map
 
                 for dep_mat_idx in range(len(dep_mat_lst)):
-                    sample_tile_res, generated_map = sample_tile(prev_generated_map, row_i, col_j, lookahead_num_param, dep_mat_lst[dep_mat_idx], cond_prob_dict_lst[dep_mat_idx], param_dict['tiles'])
+                    sample_tile_res, generated_map = sample_tile(prev_generated_map, row_i, col_j, lookahead_num_param, dep_mat_lst[dep_mat_idx], cond_prob_dict_lst[dep_mat_idx], this_tiles_lst)
 
                     if sample_tile_res:
                         # None need to generate the tile using the fallback dependency matrix
@@ -329,5 +328,3 @@ class BasicMarkovChain(BaseModel):
             generated_map = flip_map(generated_map, True, True)
 
         return generated_map
-        
-    

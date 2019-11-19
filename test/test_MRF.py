@@ -33,7 +33,7 @@ training_data = maps_data
 
 training_param_dict = {}
 
-mrf = MarkovRandomFieldModel() 
+mrf = MarkovRandomFieldModel(_b=999) 
 
 start_time = time.time()
 print("Learning...")
@@ -48,15 +48,12 @@ initial_room_map = create_initial_room_map(height=16, width=11)
 sampling_param_dict = {}
 
 print("Sampling...") 
-sampling_num = 40
+sampling_num = 400
 rooms = np.empty((sampling_num, 16, 11), dtype = str)           
 for i in range(sampling_num):
-    print(i)
     generated_map = mrf.generate_new_room(initial_room_map, sampling_param_dict)
-    print(generated_map)
     rooms[i, :, :] = generated_map
 
-print("Evaluating...")
 print(mrf.evaluate(rooms, 
                     {"similarity_function": "histogram_base",
                     "enable_cluster": True}))
