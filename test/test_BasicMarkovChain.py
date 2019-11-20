@@ -7,6 +7,8 @@ import numpy as np
 from utils import readMaps, data_split, create_initial_room_map
 from model.BasicMarkovChain import BasicMarkovChain
 
+from eval import style_eval
+
 tileTypes = {
     "F": "FLOOR",
     "B": "BLOCK",
@@ -81,3 +83,7 @@ print(basic_MC.evaluate(rooms,
                     "enable_cluster": True}))
   # np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")
 
+
+generated_map_lst = list(rooms)
+
+style_logP_sum = style_eval(basic_MC, generated_map_lst, training_param_dict, sampling_param_dict)

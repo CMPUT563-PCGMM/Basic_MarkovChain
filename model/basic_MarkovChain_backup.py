@@ -1,8 +1,11 @@
 import os
 import random
 import numpy as np
+import sys
+sys.path.append('../')
 import img_gen as ig
 import mapProcessor as mp
+from eval import style_eval
 
 
 def readMaps(tileTypes):
@@ -459,7 +462,7 @@ tileTypes = {
 }
 
 # maps_data = readMaps(tileTypes)
-maps_data = mp.readMaps("data/Final_Processed_changed_tiles_reduced_OI")
+maps_data = mp.readMaps("../data/Final_Processed_changed_tiles_reduced_OI")
 
 training_data, validation_data, testing_data = data_split(maps_data)
 
@@ -501,5 +504,7 @@ generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict
 
 print(generated_map)
 
-imgs_dic = ig.getAllTileImg("data/pics")
+imgs_dic = ig.getAllTileImg("../data/pics")
 ig.showRoom(generated_map, imgs_dic)
+
+style_eval(basic_MC, [generated_map], training_param_dict, sampling_param_dict)
