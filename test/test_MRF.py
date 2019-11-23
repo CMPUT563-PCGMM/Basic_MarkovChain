@@ -54,6 +54,11 @@ for i in range(sampling_num):
     generated_map = mrf.generate_new_room(initial_room_map, sampling_param_dict)
     rooms[i, :, :] = generated_map
 
-print(mrf.evaluate(rooms, 
-                    {"similarity_function": "histogram_base",
-                    "enable_cluster": True}))
+evaluate_param_dict = {
+  # for similarity
+  "similarity_function": "histogram_base",
+  "enable_cluster": True,
+  # for style
+  "check_style": False,
+}
+print(mrf.evaluate(rooms, evaluate_param_dict))

@@ -29,8 +29,8 @@ tileTypes = {
 TRAINING_DATA_PATH = "../PCGMM_Evaluation_Method/map_data/map_reduced_OI"
 
 maps_data = readMaps(tileTypes, maps_path=TRAINING_DATA_PATH)
-# training_data, validation_data, testing_data = data_split(maps_data)
-training_data = maps_data
+training_data, validation_data, testing_data = data_split(maps_data, train_size=0.8, validate_size=0.0, test_size=0.2)
+# training_data = maps_data
 
 # top-down-left dependency matrices
 D_1 = np.asarray([[1, 2]], dtype=np.int8)
@@ -78,12 +78,20 @@ for i in range(sampling_num):
   generated_map = basic_MC.generate_new_room(initial_room_map, sampling_param_dict)
   rooms[i, :, :] = generated_map
 
-print(basic_MC.evaluate(rooms,
-                    {"similarity_function": "histogram_base",
-                    "enable_cluster": True}))
+evaluate_param_dict = {
+  # for similarity
+  "similarity_function": "histogram_base",
+  "enable_cluster": True,
+  # for style
+  "check_style": True,
+  "test_data": testing_data,
+  "training_param_dict": training_param_dict,
+  "sampling_param_dict": sampling_param_dict
+}
+print(basic_MC.evaluate(rooms, evaluate_param_dict))
   # np.savetxt(DETINIATION_GENERATE_ROOM+"/basic_MC_{}.txt".format(i), generated_map, fmt="%s", delimiter="")
 
 
-generated_map_lst = list(rooms)
+# generated_map_lst = list(rooms)
 
-style_logP_sum = style_eval(basic_MC, generated_map_lst, training_param_dict, sampling_param_dict)
+# style_logP_sum = style_eval(basic_MC, generated_map_lst, training_param_dict, sampling_param_dict)
