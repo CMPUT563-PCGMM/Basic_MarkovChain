@@ -37,10 +37,12 @@ def data_split(maps_data, train_size=0.8, validate_size=0.1, test_size=0.1):
     random.shuffle(maps_data)
 
     training_data = maps_data[:int(train_size*len(maps_data))]
-    validation_data = maps_data[int(train_size*len(maps_data)):int(train_size*len(maps_data))+int(validate_size*len(maps_data))]
-    testing_data = maps_data[int(train_size*len(maps_data))+int(test_size*len(maps_data)):]
+    # validation_data = maps_data[int(train_size*len(maps_data)):int(train_size*len(maps_data))+int(validate_size*len(maps_data))]
+    # testing_data = maps_data[int(train_size*len(maps_data))+int(test_size*len(maps_data)):-1]
+    testing_data = maps_data[int(train_size*len(maps_data)):]
 
-    return training_data, validation_data, testing_data
+    # return training_data, validation_data, testing_data
+    return training_data, [], testing_data
 
 def flip_map(map, flip_hor, flip_ver):
     if flip_hor:
@@ -114,3 +116,43 @@ def create_initial_room_map(height, width):
         initial_room[start_idx-1:start_idx+1, 1] = door_tiles[door_tile_type_idx]
 
     return initial_room
+
+def four_side_bagging_sampling(model, initial_room_map, sampling_param_dict, bagging_num=1):
+    candidates_list = []
+    # get first sampling
+    for i in range(bagging_num):
+        # side_1 = model.generate_new_room(initial_room_map, sampling_param_dict)
+        # print(initial_room_map)
+        side_1 = model.generate_new_room(initial_room_map, sampling_param_dict)
+        # print(side_1)
+        candidates_list.append(side_1)
+
+        # lr flip
+        # print(np.flip(initial_room_map, 1))
+        side_2 = model.generate_new_room(np.flip(initial_room_map, 1), sampling_param_dict)
+        # print(np.flip(side_2, 1))
+        candidates_list.append(side_2)
+
+        # ud flip
+        # print(np.flip(initial_room_map, 0))
+        side_3 = model.generate_new_room(np.flip(initial_room_map, 0), sampling_param_dict)
+        # print(np.flip(side_3, 0))
+        candidates_list.append(side_3)
+
+        # lr && ud flip
+        # print(np.flip(np.flip(initial_room_map, 0),1))
+        side_4 = model.generate_new_room(np.flip(np.flip(initial_room_map, 0),1), sampling_param_dict)
+        # print(np.flip(np.flip(side_4, 0), 1))
+        candidates_list.append(side_4)
+
+
+    candidates_map = np.stack(tuple(candidates_list), -1)
+    # print(candidates_map.shape)
+
+    # https://stackoverflow.com/questions/12297016/how-to-find-most-frequent-values-in-numpy-ndarray?rq=1
+    axis = 2
+    u, indices = np.unique(candidates_map, return_inverse=True)
+    generated_room = u[np.argmax(np.apply_along_axis(np.bincount, axis, indices.reshape(candidates_map.shape), None, np.max(indices) + 1), axis=axis)]
+    # print(generated_room)
+
+    return generated_room
