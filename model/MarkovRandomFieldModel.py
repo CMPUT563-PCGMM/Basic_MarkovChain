@@ -1,6 +1,7 @@
 from model.BaseModel import BaseModel
 import model.mapProcessor as mp 
 # import img_gen as ig
+import pandas as pd
 import numpy as np
 import random
 import math 
@@ -208,3 +209,44 @@ class MarkovRandomFieldModel(BaseModel):
         m_new[h1,w1] = t2
 
         return m_new
+
+
+    def getRoomLogLike(self, m):
+        room_ll_dict = dict()
+        for i in range(self.thick,self.height-self.thick):
+            for j in range(self.thick,self.width-self.thick):
+                pos = str(i)+"_"+str(j)
+                t = m[i][j]
+                c = self.getConfig(i,j,m)
+                L = 0.00001
+                if t+c in self.P.keys():
+                    L = self.P[t+c]
+                room_ll_dict[pos]=math.log(L)
+        return room_ll_dict
+
+    def getTrainAvgLogLike(self, rooms):
+        dicts = list()
+        for m in rooms:
+            room_ll_dict = self.getRoomLogLike(m)
+            dicts.append(room_ll_dict)
+            # print(dicts)
+        
+        df = pd.DataFrame(dicts)
+        return dict(df.mean())
+
+    def style_evaluate(self, test_data, training_param_dict, sampling_param_dict):
+        # print(len(test_data))
+        dicts = list()
+        for m in test_data:
+            room_ll_dict = self.getRoomLogLike(m)
+            dicts.append(room_ll_dict)
+            # print(dicts)
+        
+        df = pd.DataFrame(dicts)
+        df['room_log_prob'] = df.sum(axis=1) 
+        # print(df.info())
+        # return dict(df.mean())
+        return df['room_log_prob'].sum()
+
+
+

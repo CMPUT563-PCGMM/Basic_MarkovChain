@@ -2,6 +2,8 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
+import math
+
 import numpy as np
 
 from utils import readMaps, data_split, create_initial_room_map, four_side_bagging_sampling
@@ -10,7 +12,6 @@ from model.MarkovRandomFieldModel import MarkovRandomFieldModel
 from Post_Process.functions import iterate_over_map, all_confs_np, read_map_directory_linux
 from PCGMM_Evaluation_Method.playability import evaluate_playability
 from PCGMM_Evaluation_Method.similarity import evaluate_similarity
-
 from eval import style_eval
 
 
@@ -30,7 +31,7 @@ tileTypes = {
     "A": "Breakable wall"
 }
 
-sampling_num = 200
+sampling_num = 2
 
 # read rooms for trainning data (you may have to change)
 TRAINING_DATA_PATH = "../PCGMM_Evaluation_Method/map_data/map_reduced_OI"
@@ -62,9 +63,12 @@ similarity_function = param_dict["similarity_function"]
 enable_cluster = param_dict["enable_cluster"]
 
 similarity = evaluate_similarity(test, similarity_function, enable_cluster)
+style = len(testing_data) * math.log(1/7) * 12 * 7
+
 
 report = "playability = {}\nsimilarity = {}".format(playability, similarity)
 print(report)
+print("test data log prob = {} on random sampling".format(style))
 print("#"*10)
 ##############################################
 
@@ -102,7 +106,10 @@ evaluate_param_dict = {
     "similarity_function": "histogram_base",
     "enable_cluster": True,
     # for style
-    "check_style": False,
+    "check_style": True,
+    "test_data": testing_data,
+    "training_param_dict": training_param_dict,
+    "sampling_param_dict": sampling_param_dict
 }
 print(mrf.evaluate(rooms, evaluate_param_dict))
 print("#"*10)
